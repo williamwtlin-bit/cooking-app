@@ -280,10 +280,8 @@ async function doFetch(){
   document.getElementById('rlist').innerHTML=`<div style="text-align:center;padding:36px"><div class="spin"></div><p style="color:var(--t2);font-size:13px">AI 正在分析您的食材<br>推薦最適合的料理中...</p></div>`;
 
   try{
-    const ingrStr=pantry.slice(0,15).map(i=>`${i.name}${i.qty}${i.unit}`).join(',');
-    const prompt=`你是台灣家常料理專家。根據食材推薦4道30分鐘內快速家常料理。只回JSON，不含任何其他文字或markdown符號。
-食材:${ingrStr}
-JSON格式(注意用最短的key名):{"r":[{"n":"料理名稱","t":20,"d":"難度","s":"一句話描述","m":["主食材1","主食材2"],"i":[{"n":"食材名","a":2,"u":"單位"}],"p":["步驟1","步驟2","步驟3","步驟4"]}]}`;
+    const ingrStr=pantry.map(i=>`${i.name}${i.qty}${i.unit}`).join(',');
+    const prompt=`料理助手。食材:${ingrStr}\n推薦3道料理，只用現有食材，只回JSON不要markdown。\n{"r":[{"n":"名稱","t":20,"d":"簡單","s":"描述","m":["主食材"],"i":[{"n":"食材","a":1,"u":"個"}],"p":["步驟1","步驟2","步驟3"]}]}`
 
     let rawText;
     if(cfg.mode==='gemini') rawText=await callGemini(prompt);
