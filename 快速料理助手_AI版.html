@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0f0f1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>快速料理助手</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:'Noto Sans TC','PingFang TC',sans-serif}
+:root{--bg:#0f0f1a;--bg2:#1a1a2e;--card:#1e1e35;--c2:#252545;--bdr:#2a2a4a;--ac:#f97316;--ac2:#fb923c;--gd:#fde68a;--gn:#22c55e;--rd:#ef4444;--bl:#60a5fa;--pu:#a78bfa;--tx:#f1f5f9;--t2:#94a3b8;--t3:#64748b}
+body{background:var(--bg);color:var(--tx);height:100dvh;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto}
+.pg{display:none;flex:1;flex-direction:column;overflow:hidden}.pg.on{display:flex}
+.hdr{background:linear-gradient(135deg,var(--bg2),#16213e);padding:44px 16px 12px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.hdr h1{font-size:21px;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--gd));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr p{color:var(--t2);font-size:11px;margin-top:1px}
+.hdr-row{display:flex;justify-content:space-between;align-items:flex-end}
+#nav{display:flex;background:var(--bg2);border-top:1px solid var(--bdr);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;padding:7px 4px 6px;gap:2px;background:none;border:none;cursor:pointer;position:relative}
+.nb span:first-child{font-size:19px;transition:transform .2s}
+.nb span:last-child{font-size:10px;color:var(--t3);font-weight:500}
+.nb.on::after{content:'';position:absolute;top:0;left:15%;right:15%;height:2px;background:linear-gradient(90deg,var(--ac),var(--ac2));border-radius:0 0 3px 3px}
+.nb.on span:first-child{transform:scale(1.18)}
+.nb.on span:last-child{color:var(--ac);font-weight:700}
+.sc{flex:1;overflow-y:auto;padding:13px;-webkit-overflow-scrolling:touch}
+::-webkit-scrollbar{width:2px}::-webkit-scrollbar-thumb{background:var(--bdr)}
+.btn{padding:10px 16px;border-radius:50px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.bp{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;box-shadow:0 4px 12px rgba(249,115,22,.35)}
+.bp:active{transform:scale(.96)}
+.bs{background:var(--c2);color:var(--tx);border:1px solid var(--bdr)}
+.bg{background:transparent;color:var(--t2)}
+.bd{background:rgba(239,68,68,.12);color:var(--rd)}
+.sm{padding:6px 12px;font-size:11px}
+.ic{padding:7px;border-radius:50%;width:32px;height:32px;justify-content:center}
+.bx{display:inline-flex;align-items:center;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:700}
+.b-g{background:rgba(34,197,94,.15);color:var(--gn)}
+.b-o{background:rgba(249,115,22,.15);color:var(--ac)}
+.b-b{background:rgba(96,165,250,.15);color:var(--bl)}
+.b-p{background:rgba(167,139,250,.15);color:var(--pu)}
+.b-x{background:rgba(100,116,139,.15);color:var(--t3)}
+.fg{margin-bottom:12px}
+.lbl{display:block;font-size:10px;color:var(--t2);margin-bottom:4px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.inp{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--bdr);border-radius:10px;color:var(--tx);font-size:14px;font-family:inherit;outline:none;-webkit-appearance:none}
+.inp:focus{border-color:var(--ac)}
+.ov{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);align-items:flex-end}
+.ov.on{display:flex}
+.sh{background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-height:88vh;overflow-y:auto;padding:0 16px 36px;animation:sup .28s ease}
+.sh-h{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:10px auto 16px}
+@keyframes sup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.dov{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:14px}
+.dov.on{display:flex}
+.dlg{background:var(--bg2);border-radius:14px;padding:18px;width:100%;max-width:400px;max-height:88vh;overflow-y:auto;animation:fsc .2s ease}
+@keyframes fsc{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.li{display:flex;align-items:center;gap:9px;padding:10px 11px;background:var(--card);border:1px solid var(--bdr);border-radius:11px;margin-bottom:7px}
+.li-ic{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.qc{display:flex;align-items:center;background:var(--bg);border:1px solid var(--bdr);border-radius:50px;overflow:hidden;flex-shrink:0}
+.qb{width:26px;height:26px;border:none;background:none;color:var(--ac);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.qv{min-width:24px;text-align:center;font-size:11px;font-weight:700}
+.pills{display:flex;gap:5px;overflow-x:auto;padding:9px 16px 0;flex-shrink:0}
+.pill{padding:4px 10px;border-radius:50px;border:1px solid var(--bdr);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;background:transparent;color:var(--t2);font-family:inherit}
+.pill.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.srch{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--bdr);border-radius:50px;padding:8px 12px;margin:9px 16px 0;flex-shrink:0}
+.srch input{background:none;border:none;flex:1;font-size:13px;color:var(--tx);outline:none;font-family:inherit}
+.rc{background:var(--card);border-radius:12px;border:2px solid var(--bdr);padding:12px;margin-bottom:9px;cursor:pointer;position:relative;overflow:hidden;transition:all .15s}
+.rc:active{transform:scale(.98)}
+.rc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.rc.can::before{background:linear-gradient(90deg,var(--gn),#86efac)}
+.rc.par::before{background:linear-gradient(90deg,var(--ac),var(--ac2))}
+.rc.can{border-color:rgba(34,197,94,.35)}.rc.par{border-color:rgba(249,115,22,.35)}
+#cook{display:none;position:fixed;inset:0;z-index:500;background:var(--bg);flex-direction:column}
+#cook.on{display:flex}
+.ck-hdr{background:linear-gradient(135deg,var(--ac),#dc2626);padding:46px 16px 16px;color:#fff;flex-shrink:0}
+.pb{height:4px;background:rgba(255,255,255,.25);border-radius:2px;margin-top:10px}
+.pbf{height:100%;background:#fff;border-radius:2px;transition:width .3s}
+.si{display:flex;gap:11px;padding:12px;border:2px solid var(--bdr);border-radius:11px;margin-bottom:7px;cursor:pointer;background:var(--card)}
+.si.ac{border-color:var(--ac);background:rgba(249,115,22,.08)}
+.si.dn{border-color:var(--gn);background:rgba(34,197,94,.07)}
+.sn{width:31px;height:31px;border-radius:50%;border:2px solid var(--bdr);background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;color:var(--t3)}
+.si.ac .sn{background:var(--ac);border-color:var(--ac);color:#fff}
+.si.dn .sn{background:var(--gn);border-color:var(--gn);color:#fff}
+.ck-ft{display:flex;gap:8px;padding:11px 16px;padding-bottom:calc(11px + env(safe-area-inset-bottom));background:var(--bg2);flex-shrink:0}
+#tst{position:fixed;top:52px;left:50%;transform:translateX(-50%);background:var(--c2);color:var(--tx);padding:9px 16px;border-radius:50px;font-size:12px;z-index:1000;white-space:nowrap;opacity:0;transition:opacity .2s;border:1px solid var(--bdr);box-shadow:0 8px 24px rgba(0,0,0,.4);font-weight:600;pointer-events:none}
+#tst.on{opacity:1}
+.dvd{height:1px;background:var(--bdr);margin:12px 0}
+.slbl{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px}
+.spin{width:36px;height:36px;border:3px solid var(--bdr);border-top-color:var(--ac);border-radius:50%;animation:sp .8s linear infinite;margin:0 auto 10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.emp{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 16px;text-align:center;color:var(--t3)}
+.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:12px;margin-bottom:10px;font-size:12px;color:var(--rd);line-height:1.6}
+.ir{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bdr)}
+.ir:last-child{border:none}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:5px}
+.cv{background:rgba(34,197,94,.12)}.cm{background:rgba(239,68,68,.12)}.cs{background:rgba(96,165,250,.12)}.ce{background:rgba(251,191,36,.12)}.csp{background:rgba(249,115,22,.12)}.cd{background:rgba(167,139,250,.12)}.cf{background:rgba(244,114,182,.12)}.co{background:rgba(100,116,139,.12)}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="pg on" id="p-pantry">
+    <div class="hdr">
+      <div class="hdr-row">
+        <div><h1>🥘 食材庫</h1><p id="pc">0 種食材</p></div>
+        <button class="btn bp sm" onclick="oAdd()">＋ 新增</button>
+      </div>
+    </div>
+    <div class="srch"><span style="color:var(--t3)">🔍</span><input id="psrch" placeholder="搜尋食材..." oninput="renderP()"></div>
+    <div class="pills" id="cpills"></div>
+    <div class="sc" id="plist"></div>
+  </div>
+
+  <div class="pg" id="p-recipes">
+    <div class="hdr">
+      <div class="hdr-row">
+        <div><h1>👨‍🍳 推薦食譜</h1><p id="rsub">AI 根據食材智慧推薦</p></div>
+        <button class="btn bp sm" id="rbtn" onclick="doFetch()">🤖 推薦</button>
+      </div>
+    </div>
+    <div class="sc" id="rlist">
+      <div class="emp"><div style="font-size:52px;margin-bottom:12px">🤖</div><p style="color:var(--t2);font-size:15px;font-weight:700;margin-bottom:6px">準備推薦料理</p><p style="font-size:12px;margin-bottom:16px">點擊右上角「推薦」讓 AI 分析您的食材</p><button class="btn bp" onclick="doFetch()">✨ 開始推薦</button></div>
+    </div>
+  </div>
+
+  <div class="pg" id="p-shop">
+    <div class="hdr"><h1>🛒 採買清單</h1><p>下班路上採買規劃</p></div>
+    <div class="sc" id="shopsc"></div>
+  </div>
+
+  <div class="pg" id="p-settings">
+    <div class="hdr"><h1>⚙️ 設定</h1><p>AI API 與食材管理</p></div>
+    <div class="sc">
+      <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:14px;margin-bottom:10px">
+        <div class="slbl">AI 推薦 API 設定</div>
+        <div class="fg">
+          <label class="lbl">選擇 API</label>
+          <select class="inp" id="api-mode" onchange="onModeChange()">
+            <option value="gemini">Gemini API（推薦，免費）</option>
+            <option value="claude">Claude API（需 Anthropic Key）</option>
+          </select>
+        </div>
+        <div class="fg" id="key-area">
+          <label class="lbl" id="key-lbl">Gemini API Key</label>
+          <div style="position:relative">
+            <input class="inp" id="api-key" type="password" placeholder="AIza..." style="padding-right:40px" oninput="saveCfg()">
+            <button onclick="toggleVis()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px">👁</button>
+          </div>
+        </div>
+        <p id="key-hint" style="font-size:11px;color:var(--t3);line-height:1.7;margin-top:4px">
+          免費取得 Gemini Key：<br>
+          <span style="color:var(--bl)">aistudio.google.com/app/apikey</span>
+        </p>
+        <p id="api-st" style="font-size:11px;color:var(--gn);margin-top:8px"></p>
+      </div>
+
+      <div style="background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.2);border-radius:12px;padding:14px;margin-bottom:10px">
+        <div class="slbl" style="color:var(--ac)">⚠ CORS 說明（重要）</div>
+        <p style="font-size:12px;color:var(--t2);line-height:1.8">
+          如果直接開啟 HTML 檔遇到錯誤：<br>
+          <b style="color:var(--tx)">方法一：</b>用手機上傳到 Google Drive，<br>
+          　右鍵 → 「以應用程式開啟」→ Chrome<br>
+          <b style="color:var(--tx)">方法二：</b>電腦執行：<br>
+          　<span style="color:var(--bl);font-size:11px">python -m http.server 8080</span><br>
+          　然後開啟 localhost:8080<br>
+          <b style="color:var(--tx)">方法三：</b>在 claude.ai 的 Artifact 中使用
+        </p>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:14px;margin-bottom:10px">
+        <div class="slbl">食材庫管理</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn bs sm" onclick="loadDef()">🔄 載入預設食材</button>
+          <button class="btn bd sm" onclick="clearP()">🗑 清空食材庫</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav id="nav">
+    <button class="nb on" onclick="sw('pantry',this)"><span>🥘</span><span>食材庫</span></button>
+    <button class="nb" onclick="sw('recipes',this)"><span>👨‍🍳</span><span>食譜</span></button>
+    <button class="nb" onclick="sw('shop',this)"><span>🛒</span><span>採買</span></button>
+    <button class="nb" onclick="sw('settings',this)"><span>⚙️</span><span>設定</span></button>
+  </nav>
+</div>
+
+<!-- Add/Edit Sheet -->
+<div class="ov" id="sh-i" onclick="cSh('sh-i')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-h"></div>
+    <p id="sh-ttl" style="font-size:16px;font-weight:700;margin-bottom:14px">新增食材</p>
+    <div class="fg"><label class="lbl">食材名稱</label><input class="inp" id="fn" placeholder="例：雞蛋"></div>
+    <div style="display:flex;gap:10px">
+      <div class="fg" style="flex:1"><label class="lbl">數量</label><input class="inp" id="fq" type="number" placeholder="0" min="0" step="0.1"></div>
+      <div class="fg" style="flex:1"><label class="lbl">單位</label><select class="inp" id="fu"><option>顆</option><option>個</option><option>克</option><option>公斤</option><option>片</option><option>包</option><option>罐</option><option>瓶</option><option>把</option><option>條</option><option>塊</option><option>支</option><option>匙</option><option>杯</option><option>份</option></select></div>
+    </div>
+    <div class="fg"><label class="lbl">分類</label><select class="inp" id="fc"><option>蔬菜</option><option>肉類</option><option>海鮮</option><option>蛋奶</option><option>調味料</option><option>乾貨</option><option>水果</option><option>其他</option></select></div>
+    <input type="hidden" id="fid">
+    <div style="display:flex;gap:7px"><button class="btn bp" style="flex:1;justify-content:center" onclick="sIngr()">✓ 儲存</button><button class="btn bs" onclick="cSh('sh-i')">取消</button></div>
+  </div>
+</div>
+
+<!-- Recipe Detail -->
+<div class="dov" id="dov-r" onclick="cDov('dov-r')">
+  <div class="dlg" id="dlg-r" onclick="event.stopPropagation()"></div>
+</div>
+
+<!-- Cooking -->
+<div id="cook">
+  <div class="ck-hdr">
+    <div style="display:flex;align-items:center;gap:9px">
+      <button class="btn bg ic" style="color:#fff;font-size:17px;background:rgba(255,255,255,.2)" onclick="cCook()">✕</button>
+      <div><div id="ck-ttl" style="font-size:17px;font-weight:800"></div><div id="ck-prog" style="font-size:11px;opacity:.8;margin-top:1px"></div></div>
+    </div>
+    <div class="pb"><div class="pbf" id="ck-bar" style="width:0%"></div></div>
+  </div>
+  <div class="sc" id="ck-st"></div>
+  <div class="ck-ft">
+    <button class="btn bs" id="ck-prev" onclick="prevSt()">← 上一步</button>
+    <button class="btn bp" id="ck-next" style="flex:1;justify-content:center" onclick="nextSt()">下一步 →</button>
+  </div>
+</div>
+
+<div id="tst"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let pantry=[], recipes=[], selRec=[], shopBought={};
+let curCat='全部', cookR=null, cookStep=0, cookDone=new Set();
+let cfg={mode:'gemini',key:''};
+const CE={蔬菜:'🥦',肉類:'🥩',海鮮:'🦐',蛋奶:'🥚',調味料:'🧂',乾貨:'🌾',水果:'🍎',其他:'📦'};
+const CC={蔬菜:'cv',肉類:'cm',海鮮:'cs',蛋奶:'ce',調味料:'csp',乾貨:'cd',水果:'cf',其他:'co'};
+
+// ── Storage (localStorage for HTML file) ───────────────────────────
+function save(){localStorage.setItem('pantry3',JSON.stringify(pantry));localStorage.setItem('recipes3',JSON.stringify(recipes));localStorage.setItem('cfg3',JSON.stringify(cfg));}
+function loadStorage(){
+  try{const p=localStorage.getItem('pantry3');if(p)pantry=JSON.parse(p);}catch{}
+  try{const r=localStorage.getItem('recipes3');if(r)recipes=JSON.parse(r);}catch{}
+  try{const c=localStorage.getItem('cfg3');if(c)cfg={...cfg,...JSON.parse(c)};}catch{}
+}
+
+// ── Config UI ──────────────────────────────────────────────────────
+function onModeChange(){
+  cfg.mode=document.getElementById('api-mode').value;
+  const lbl=document.getElementById('key-lbl');
+  const hint=document.getElementById('key-hint');
+  if(cfg.mode==='gemini'){
+    lbl.textContent='Gemini API Key';
+    hint.innerHTML='免費取得：<span style="color:var(--bl)">aistudio.google.com/app/apikey</span>';
+  } else {
+    lbl.textContent='Anthropic API Key（Claude）';
+    hint.innerHTML='取得：<span style="color:var(--bl)">console.anthropic.com</span>（付費）';
+  }
+  saveCfg();
+}
+function saveCfg(){
+  cfg.mode=document.getElementById('api-mode').value;
+  cfg.key=document.getElementById('api-key').value.trim();
+  const st=document.getElementById('api-st');
+  st.textContent=cfg.key?'✓ API Key 已設定':'⚠ 尚未設定 API Key';
+  st.style.color=cfg.key?'var(--gn)':'var(--ac)';
+  save();
+}
+function toggleVis(){const i=document.getElementById('api-key');i.type=i.type==='password'?'text':'password';}
+function applyCfg(){
+  document.getElementById('api-mode').value=cfg.mode;
+  document.getElementById('api-key').value=cfg.key;
+  onModeChange();
+}
+
+// ── API Calls ──────────────────────────────────────────────────────
+async function doFetch(){
+  if(!pantry.length){toast('⚠ 請先新增食材');return;}
+  if(!cfg.key){toast('⚠ 請先在設定頁面輸入 API Key');sw('settings',document.querySelectorAll('.nb')[3]);return;}
+  
+  const btn=document.getElementById('rbtn');
+  btn.disabled=true;btn.textContent='分析中...';
+  document.getElementById('rsub').textContent='AI 分析中...';
+  document.getElementById('rlist').innerHTML=`<div style="text-align:center;padding:36px"><div class="spin"></div><p style="color:var(--t2);font-size:13px">AI 正在分析您的食材<br>推薦最適合的料理中...</p></div>`;
+
+  try{
+    const ingrStr=pantry.slice(0,15).map(i=>`${i.name}${i.qty}${i.unit}`).join(',');
+    const prompt=`你是台灣家常料理專家。根據食材推薦4道30分鐘內快速家常料理。只回JSON，不含任何其他文字或markdown符號。
+食材:${ingrStr}
+JSON格式(注意用最短的key名):{"r":[{"n":"料理名稱","t":20,"d":"難度","s":"一句話描述","m":["主食材1","主食材2"],"i":[{"n":"食材名","a":2,"u":"單位"}],"p":["步驟1","步驟2","步驟3","步驟4"]}]}`;
+
+    let rawText;
+    if(cfg.mode==='gemini') rawText=await callGemini(prompt);
+    else rawText=await callClaude(prompt);
+
+    const clean=rawText.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const data=JSON.parse(clean);
+    recipes=(data.r||data.recipes||[]).map(r=>({
+      name:r.n||r.name||'未知',
+      time:r.t||r.time||20,
+      diff:r.d||r.difficulty||'普通',
+      desc:r.s||r.description||r.desc||'',
+      main:r.m||r.mainIngredients||[],
+      ingr:(r.i||r.allIngredients||[]).map(x=>({n:x.n||x.name,a:x.a||x.amount||1,u:x.u||x.unit||''})),
+      steps:r.p||r.steps||[]
+    }));
+    save();renderRecs();
+    document.getElementById('rsub').textContent=`已推薦 ${recipes.length} 道料理`;
+    toast(`✨ 推薦了 ${recipes.length} 道料理！`);
+  }catch(e){
+    console.error(e);
+    const msg=e.message||String(e);
+    document.getElementById('rlist').innerHTML=`
+      <div class="err">
+        ❌ <b>推薦失敗</b><br><br>
+        錯誤：${msg}<br><br>
+        ${msg.includes('Failed to fetch')||msg.includes('CORS')?
+          `<b>CORS 問題解決方法：</b><br>
+          1. 把 HTML 檔上傳到 Google Drive 再開啟<br>
+          2. 或在電腦執行：<span style="color:var(--bl)">python -m http.server</span><br>
+          3. 或確認 API Key 是否正確`
+          :`<b>可能原因：</b> API Key 錯誤或網路問題`}
+      </div>
+      <div style="text-align:center;margin-top:10px"><button class="btn bp" onclick="doFetch()">🔄 重試</button></div>`;
+    document.getElementById('rsub').textContent='推薦失敗';
+    toast('❌ '+msg.slice(0,50));
+  }
+  btn.disabled=false;btn.textContent='🤖 推薦';
+}
+
+async function callGemini(prompt){
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cfg.key}`;
+  const res=await fetch(url,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1000,temperature:0.7}})
+  });
+  if(!res.ok){const b=await res.text().catch(()=>'');throw new Error(`Gemini HTTP ${res.status}: ${b.slice(0,150)}`);}
+  const data=await res.json();
+  const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+  if(!text)throw new Error('Gemini 回傳空白回應');
+  return text;
+}
+
+async function callClaude(prompt){
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-3-haiku-20240307',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+  });
+  if(!res.ok){const b=await res.text().catch(()=>'');throw new Error(`Claude HTTP ${res.status}: ${b.slice(0,150)}`);}
+  const data=await res.json();
+  return data.content?.find(c=>c.type==='text')?.text||'';
+}
+
+// ── Ingredient matching ────────────────────────────────────────────
+function matchN(needed,pantry){
+  const n=needed.toLowerCase();
+  return pantry.some(p=>{const pn=p.name.toLowerCase();return pn.includes(n)||n.includes(pn);});
+}
+function checkR(r){
+  const all=r.ingr||[],main=r.main||[];
+  const miss=all.filter(i=>!matchN(i.n,pantry));
+  const missMain=main.filter(m=>!matchN(m,pantry));
+  return{canMake:miss.length===0,hasMain:missMain.length===0,miss,haveN:all.length-miss.length,total:all.length};
+}
+
+// ── NAV ───────────────────────────────────────────────────────────
+function sw(id,btn){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('p-'+id).classList.add('on');
+  btn.classList.add('on');
+  if(id==='recipes'&&recipes.length)renderRecs();
+  if(id==='shop')renderShop();
+}
+
+// ── PANTRY ────────────────────────────────────────────────────────
+function buildPills(){
+  document.getElementById('cpills').innerHTML=['全部','蔬菜','肉類','海鮮','蛋奶','調味料','乾貨','水果','其他'].map(c=>`<button class="pill${c===curCat?' on':''}" onclick="selCat('${c}',this)">${c==='全部'?'全部':(CE[c]||'')+' '+c}</button>`).join('');
+}
+function selCat(c,el){curCat=c;document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));el.classList.add('on');renderP();}
+
+function renderP(){
+  const q=document.getElementById('psrch').value.toLowerCase();
+  const list=pantry.filter(i=>(curCat==='全部'||i.cat===curCat)&&(!q||i.name.includes(q)));
+  document.getElementById('pc').textContent=`共 ${pantry.length} 種食材`;
+  const el=document.getElementById('plist');
+  if(!list.length){el.innerHTML='<div class="emp"><div style="font-size:52px;margin-bottom:12px">🥕</div><p style="color:var(--t2)">沒有食材</p></div>';return;}
+  el.innerHTML=list.map(i=>`
+    <div class="li">
+      <div class="li-ic ${CC[i.cat]||'co'}">${CE[i.cat]||'📦'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${i.name}</div>
+        <div style="font-size:10px;color:var(--t2);margin-top:1px">${i.cat}·${i.qty}${i.unit}${i.qty>0&&i.qty<=1?' <span style="color:var(--rd)">⚠快用完</span>':''}</div>
+      </div>
+      <div class="qc"><button class="qb" onclick="adj('${i.id}',-1)">−</button><span class="qv">${i.qty}</span><button class="qb" onclick="adj('${i.id}',1)">＋</button></div>
+      <button class="btn bg ic sm" onclick="oEdit('${i.id}')" style="font-size:14px">✏️</button>
+      <button class="btn bg ic sm" onclick="del('${i.id}')" style="font-size:14px">🗑</button>
+    </div>`).join('');
+}
+
+function adj(id,d){const i=pantry.find(x=>x.id===id);if(i){i.qty=Math.max(0,+(i.qty+d).toFixed(1));save();renderP();}}
+function del(id){if(confirm('確定刪除？')){pantry=pantry.filter(x=>x.id!==id);save();renderP();toast('🗑 已刪除');}}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+function oAdd(){document.getElementById('sh-ttl').textContent='新增食材';['fn','fq'].forEach(id=>document.getElementById(id).value='');document.getElementById('fu').value='顆';document.getElementById('fc').value='蔬菜';document.getElementById('fid').value='';oSh('sh-i');}
+function oEdit(id){const i=pantry.find(x=>x.id===id);if(!i)return;document.getElementById('sh-ttl').textContent='編輯食材';document.getElementById('fn').value=i.name;document.getElementById('fq').value=i.qty;document.getElementById('fu').value=i.unit;document.getElementById('fc').value=i.cat;document.getElementById('fid').value=id;oSh('sh-i');}
+
+function sIngr(){
+  const name=document.getElementById('fn').value.trim();
+  if(!name){toast('請輸入食材名稱');return;}
+  const qty=parseFloat(document.getElementById('fq').value)||0;
+  const unit=document.getElementById('fu').value,cat=document.getElementById('fc').value;
+  const id=document.getElementById('fid').value;
+  if(id){const i=pantry.find(x=>x.id===id);if(i)Object.assign(i,{name,qty,unit,cat});}
+  else pantry.push({id:uid(),name,qty,unit,cat});
+  save();cSh('sh-i');renderP();toast(id?'✓ 已更新':'✓ 已新增');
+}
+
+function loadDef(){
+  const defs=[{name:'雞蛋',qty:6,unit:'顆',cat:'蛋奶'},{name:'豬肉片',qty:300,unit:'克',cat:'肉類'},{name:'番茄',qty:3,unit:'顆',cat:'蔬菜'},{name:'蔥',qty:1,unit:'把',cat:'蔬菜'},{name:'大蒜',qty:8,unit:'顆',cat:'蔬菜'},{name:'醬油',qty:1,unit:'瓶',cat:'調味料'},{name:'白米',qty:2,unit:'公斤',cat:'乾貨'},{name:'豆腐',qty:2,unit:'塊',cat:'蛋奶'},{name:'鹽',qty:1,unit:'罐',cat:'調味料'},{name:'油',qty:1,unit:'瓶',cat:'調味料'},{name:'洋蔥',qty:2,unit:'顆',cat:'蔬菜'},{name:'薑',qty:1,unit:'塊',cat:'調味料'},{name:'雞腿',qty:2,unit:'支',cat:'肉類'},{name:'胡蘿蔔',qty:2,unit:'條',cat:'蔬菜'},{name:'辣椒',qty:3,unit:'條',cat:'蔬菜'}];
+  const ex=pantry.map(p=>p.name);
+  const added=defs.filter(d=>!ex.includes(d.name)).map(d=>({...d,id:uid()}));
+  pantry=[...pantry,...added];save();renderP();toast(`✓ 已載入 ${added.length} 種食材`);
+}
+function clearP(){if(confirm('確定清空？')){pantry=[];save();renderP();toast('🗑 食材庫已清空');}}
+
+// ── RECIPES ───────────────────────────────────────────────────────
+function renderRecs(){
+  if(!recipes.length){document.getElementById('rlist').innerHTML='<div class="emp"><div style="font-size:52px;margin-bottom:12px">🍽️</div><p style="color:var(--t2)">點擊「推薦」取得 AI 推薦</p></div>';return;}
+  const sorted=[...recipes].map(r=>({...r,...checkR(r)})).sort((a,b)=>(b.canMake-a.canMake)||(b.hasMain-a.hasMain));
+  document.getElementById('rsub').textContent=`可製作 ${sorted.filter(r=>r.canMake).length} 道 · 共 ${recipes.length} 道`;
+  document.getElementById('rlist').innerHTML=sorted.map((r,i)=>{
+    const cls=r.canMake?'can':r.hasMain?'par':'';
+    const bx=r.canMake?'<span class="bx b-g">✓ 可製作</span>':r.hasMain?'<span class="bx b-o">⚠ 缺配料</span>':'<span class="bx b-x">材料不足</span>';
+    const mis=!r.canMake&&r.miss.length?`<div style="margin-top:7px;padding:6px 9px;background:rgba(249,115,22,.08);border-radius:7px;font-size:11px;color:var(--ac)">缺少：${r.miss.map(m=>m.n).join('、')}</div>`:'';
+    return `<div class="rc ${cls}" onclick="showDet(${i})"><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">${bx}<span class="bx b-b">⏱${r.time}分</span><span class="bx b-p">★${r.diff}</span></div><div style="font-size:15px;font-weight:700;margin-bottom:6px">${r.name}</div><div style="font-size:12px;color:var(--t2);line-height:1.5">${r.desc}</div>${mis}</div>`;
+  }).join('');
+}
+
+function showDet(idx){
+  const r=recipes[idx],c=checkR(r);
+  const iH=(r.ingr||[]).map(i=>`<div class="ir"><span><span class="dot" style="background:${matchN(i.n,pantry)?'var(--gn)':'var(--rd)'}"></span>${i.n}</span><span style="font-size:12px;color:var(--t2)">${i.a} ${i.u}</span></div>`).join('');
+  const sH=(r.steps||[]).map((s,j)=>`<div style="display:flex;gap:7px;padding:6px 0;border-bottom:1px solid var(--bdr)"><span style="color:var(--ac);font-weight:700;min-width:16px;font-size:12px">${j+1}.</span><span style="font-size:12px;color:var(--t2);line-height:1.6">${s}</span></div>`).join('');
+  document.getElementById('dlg-r').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px">
+      <h2 style="font-size:18px;font-weight:800;flex:1;padding-right:7px">${r.name}</h2>
+      <button class="btn bg ic" onclick="cDov('dov-r')" style="font-size:17px">✕</button>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px">
+      ${c.canMake?'<span class="bx b-g">✓ 可立即製作</span>':c.hasMain?'<span class="bx b-o">⚠ 缺配料</span>':'<span class="bx b-x">材料不足</span>'}
+      <span class="bx b-b">⏱${r.time}分鐘</span><span class="bx b-p">★${r.diff}</span>
+    </div>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:11px;line-height:1.5">${r.desc}</p>
+    ${!c.canMake&&c.miss.length?`<div style="padding:9px 11px;background:rgba(249,115,22,.1);border-radius:8px;margin-bottom:11px;font-size:12px;color:var(--ac)">⚠ 缺少：${c.miss.map(m=>m.n).join('、')}</div>`:''}
+    <div class="slbl">食材清單</div><div style="margin-bottom:12px">${iH}</div>
+    <div class="slbl">料理步驟</div><div style="margin-bottom:16px">${sH}</div>
+    <div style="display:flex;gap:7px">
+      <button class="btn bp" style="flex:1;justify-content:center" onclick="startCook(${idx});cDov('dov-r')">🍳 開始料理</button>
+      <button class="btn bs" onclick="cDov('dov-r')">關閉</button>
+    </div>`;
+  oDov('dov-r');
+}
+
+// ── COOKING ───────────────────────────────────────────────────────
+function startCook(idx){cookR=recipes[idx];cookStep=0;cookDone=new Set();document.getElementById('ck-ttl').textContent=cookR.name;renderCook();document.getElementById('cook').classList.add('on');}
+function renderCook(){
+  const steps=cookR.steps||[],total=steps.length;
+  document.getElementById('ck-prog').textContent=`步驟 ${cookStep+1} / ${total}`;
+  document.getElementById('ck-bar').style.width=(total>1?(cookStep/(total-1))*100:0)+'%';
+  document.getElementById('ck-prev').disabled=cookStep===0;
+  document.getElementById('ck-next').textContent=cookStep===total-1?'✓ 完成料理！':'下一步 →';
+  document.getElementById('ck-st').innerHTML=steps.map((s,i)=>`<div class="si${i===cookStep?' ac':''}${cookDone.has(i)?' dn':''}" onclick="cookStep=${i};renderCook()"><div class="sn">${cookDone.has(i)?'✓':i+1}</div><div style="flex:1;font-size:13px;line-height:1.6;padding-top:4px;color:${cookDone.has(i)?'var(--t3)':'var(--tx)'}">${s}</div></div>`).join('');
+  setTimeout(()=>{const el=document.querySelectorAll('.si')[cookStep];if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},80);
+}
+function nextSt(){cookDone.add(cookStep);if(cookStep===(cookR.steps||[]).length-1){finCook();return;}cookStep++;renderCook();}
+function prevSt(){if(cookStep>0){cookStep--;renderCook();}}
+function cCook(){document.getElementById('cook').classList.remove('on');}
+function finCook(){
+  (cookR.ingr||[]).forEach(need=>{const m=pantry.find(p=>{const pn=p.name.toLowerCase(),nn=need.n.toLowerCase();return pn.includes(nn)||nn.includes(pn);});if(m){m.qty=Math.max(0,+(m.qty-need.a).toFixed(1));if(m.qty===0)pantry=pantry.filter(p=>p.id!==m.id);}});
+  save();cCook();renderP();toast(`🎉 ${cookR.name} 完成！食材已扣除`);
+}
+
+// ── SHOPPING ──────────────────────────────────────────────────────
+function renderShop(){
+  const el=document.getElementById('shopsc');
+  if(!recipes.length){el.innerHTML='<div class="emp"><div style="font-size:48px;margin-bottom:12px">📋</div><p style="color:var(--t2)">請先到食譜頁面取得推薦</p></div>';return;}
+  const rH=recipes.map((r,i)=>`<div onclick="togSel(${i})" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:2px solid ${selRec.includes(i)?'var(--ac)':'var(--bdr)'};border-radius:11px;margin-bottom:7px;cursor:pointer">
+    <div style="width:19px;height:19px;border-radius:5px;border:2px solid ${selRec.includes(i)?'var(--ac)':'var(--bdr)'};background:${selRec.includes(i)?'var(--ac)':'transparent'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;flex-shrink:0">${selRec.includes(i)?'✓':''}</div>
+    <div><div style="font-size:13px;font-weight:600">${r.name}</div><div style="font-size:10px;color:var(--t2);margin-top:1px">⏱${r.time}分 · ${r.diff}</div></div>
+  </div>`).join('');
+
+  let shopH='';
+  if(selRec.length){
+    const need={};
+    selRec.forEach(i=>{(recipes[i]?.ingr||[]).forEach(x=>{if(!need[x.n])need[x.n]={n:x.n,u:x.u,total:0};need[x.n].total+=x.a;});});
+    const toBuy=Object.values(need).map(n=>{const hv=pantry.find(p=>{const pn=p.name.toLowerCase(),nn=n.n.toLowerCase();return pn.includes(nn)||nn.includes(pn);});const nd=+(n.total-(hv?hv.qty:0)).toFixed(1);return{...n,need:nd,have:hv?hv.qty:0};}).filter(x=>x.need>0);
+    shopH=`<div class="dvd"></div><div class="slbl">採買清單</div>`+(
+      toBuy.length===0?'<div style="text-align:center;padding:16px;color:var(--gn);font-size:13px">✅ 食材充足，無需採買！</div>'
+      :toBuy.map(item=>`<div onclick="togBuy('${item.n}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--bdr);border-radius:11px;margin-bottom:7px;cursor:pointer;opacity:${shopBought[item.n]?.45:1}">
+          <div style="width:19px;height:19px;border-radius:5px;border:2px solid ${shopBought[item.n]?'var(--gn)':'var(--bdr)'};background:${shopBought[item.n]?'var(--gn)':'transparent'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;flex-shrink:0">${shopBought[item.n]?'✓':''}</div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600;text-decoration:${shopBought[item.n]?'line-through':'none'}">${item.n}</div><div style="font-size:10px;color:var(--t2);margin-top:1px">需要 ${item.need} ${item.u}${item.have>0?` · 已有 ${item.have}`:''}</div></div>
+        </div>`).join('')+
+      `<button class="btn bp" style="width:100%;justify-content:center;margin-top:8px" onclick="confBuy()">✓ 採買完成，加入庫存</button><p style="font-size:10px;color:var(--t3);text-align:center;margin-top:5px">勾選已購買項目後確認</p>`);
+  }
+  el.innerHTML=`<div class="slbl">選擇想料理的食譜</div>${rH}${shopH}`;
+}
+function togSel(i){const x=selRec.indexOf(i);if(x>=0)selRec.splice(x,1);else selRec.push(i);shopBought={};renderShop();}
+function togBuy(n){shopBought[n]=!shopBought[n];renderShop();}
+function confBuy(){
+  const need={};selRec.forEach(i=>{(recipes[i]?.ingr||[]).forEach(x=>{if(!need[x.n])need[x.n]={n:x.n,u:x.u,total:0};need[x.n].total+=x.a;});});
+  const toBuy=Object.values(need).map(n=>{const hv=pantry.find(p=>{const pn=p.name.toLowerCase(),nn=n.n.toLowerCase();return pn.includes(nn)||nn.includes(pn);});const nd=+(n.total-(hv?hv.qty:0)).toFixed(1);return{...n,need:nd,have:hv?hv.qty:0};}).filter(x=>x.need>0);
+  const bought=toBuy.filter(x=>shopBought[x.n]);
+  if(!bought.length){toast('請先勾選已購買的食材');return;}
+  bought.forEach(item=>{const ex=pantry.find(p=>{const pn=p.name.toLowerCase(),nn=item.n.toLowerCase();return pn.includes(nn)||nn.includes(pn);});if(ex)ex.qty=+(ex.qty+item.need).toFixed(1);else pantry.push({id:uid(),name:item.n,qty:item.need,unit:item.u,cat:'其他'});});
+  save();toast(`✅ 已加入 ${bought.length} 種食材！`);selRec=[];shopBought={};renderShop();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function oSh(id){document.getElementById(id).classList.add('on');}
+function cSh(id){document.getElementById(id).classList.remove('on');}
+function oDov(id){document.getElementById(id).classList.add('on');}
+function cDov(id){document.getElementById(id).classList.remove('on');}
+let tT;function toast(m){const el=document.getElementById('tst');el.textContent=m;el.classList.add('on');clearTimeout(tT);tT=setTimeout(()=>el.classList.remove('on'),2600);}
+
+// ── Init ──────────────────────────────────────────────────────────
+loadStorage();
+buildPills();
+if(!pantry.length)loadDef();
+else renderP();
+renderP();
+applyCfg();
+if(recipes.length)renderRecs();
+</script>
+</body>
+</html>
