@@ -308,11 +308,13 @@ async function doFetch(){
       <div class="err">
         ❌ <b>推薦失敗</b><br><br>
         錯誤：${msg}<br><br>
-        ${msg.includes('Failed to fetch')||msg.includes('CORS')?
-          `<b>CORS 問題解決方法：</b><br>
-          1. 把 HTML 檔上傳到 Google Drive 再開啟<br>
-          2. 或在電腦執行：<span style="color:var(--bl)">python -m http.server</span><br>
-          3. 或確認 API Key 是否正確`
+        ${msg.includes('Failed to fetch')?
+          `<b>可能原因：</b><br>
+          1. API Key 無效或未輸入，請至⚙️設定確認<br>
+          2. 配額已用盡，明天再試<br>
+          3. 手機網路不穩，請重試`
+          :msg.includes('quota')||msg.includes('429')?
+          `<b>配額已用盡</b>，Gemini 免費版每天 1500 次，請明天再試`
           :`<b>可能原因：</b> API Key 錯誤或網路問題`}
       </div>
       <div style="text-align:center;margin-top:10px"><button class="btn bp" onclick="doFetch()">🔄 重試</button></div>`;
@@ -323,17 +325,28 @@ async function doFetch(){
 }
 
 async function callGemini(prompt){
-  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cfg.key}`;
-  const res=await fetch(url,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1000,temperature:0.7}})
-  });
-  if(!res.ok){const b=await res.text().catch(()=>'');throw new Error(`Gemini HTTP ${res.status}: ${b.slice(0,150)}`);}
-  const data=await res.json();
-  const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
-  if(!text)throw new Error('Gemini 回傳空白回應');
-  return text;
+  const models=['gemini-2.5-flash','gemini-2.0-flash','gemini-1.5-flash'];
+  let lastErr;
+  for(const model of models){
+    try{
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.key}`;
+      const res=await fetch(url,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1000,temperature:0.7}})
+      });
+      if(res.status===404){lastErr=new Error(`模型 ${model} 不存在`);continue;}
+      if(!res.ok){const b=await res.text().catch(()=>'');throw new Error(`Gemini ${res.status}: ${b.slice(0,200)}`);}
+      const data=await res.json();
+      const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+      if(!text)throw new Error('Gemini 回傳空白回應');
+      return text;
+    }catch(e){
+      if(e.message.includes('Gemini ')||e.message.includes('空白'))throw e;
+      lastErr=e;
+    }
+  }
+  throw lastErr||new Error('所有模型都無法使用');
 }
 
 async function callClaude(prompt){
