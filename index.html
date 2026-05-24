@@ -175,6 +175,13 @@ body{background:var(--bg);color:var(--tx);height:100dvh;overflow:hidden}
         </div>
       </div>
     </div>
+
+      <div id="dbg-card" style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:14px;margin-bottom:10px">
+        <div class="slbl">🔧 API 連線診斷</div>
+        <button class="btn bs sm" onclick="runDiag()" id="diag-btn">🔍 開始診斷</button>
+        <div id="diag-out" style="margin-top:10px;font-size:11px;line-height:1.9;color:var(--t2)"></div>
+      </div>
+    </div>
   </div>
 
   <nav id="nav">
@@ -539,6 +546,58 @@ else renderP();
 renderP();
 applyCfg();
 if(recipes.length)renderRecs();
+
+async function runDiag(){
+  const out=document.getElementById('diag-out');
+  const btn=document.getElementById('diag-btn');
+  btn.disabled=true;
+  out.innerHTML='';
+  const log=(msg,ok)=>out.innerHTML+=`<div>${ok===true?'✅':ok===false?'❌':'⏳'} ${msg}</div>`;
+  
+  log('檢查 API Key 設定...', null);
+  const key=cfg.key;
+  if(!key){log('API Key 未設定，請先在上方輸入 Key',false);btn.disabled=false;return;}
+  log(`Key: ${key.slice(0,6)}...${key.slice(-4)} (長度${key.length})`, key.length>20);
+  
+  log('測試網路連線 (Google)...', null);
+  try{
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?key='+key,{signal:AbortSignal.timeout(8000)});
+    if(r.ok){
+      const d=await r.json();
+      const names=(d.models||[]).map(m=>m.name.split('/').pop()).slice(0,5);
+      log('連線成功！可用模型: '+names.join(', '),true);
+    } else {
+      const t=await r.text().catch(()=>'');
+      log(`連線回應 ${r.status}: ${t.slice(0,100)}`, r.status===400||r.status===403?false:null);
+    }
+  }catch(e){
+    log('網路錯誤: '+e.message,false);
+    if(e.message.includes('Failed to fetch')||e.message.includes('NetworkError')){
+      log('→ 可能是 CORS 問題或網路封鎖',false);
+    }
+  }
+  
+  log('測試 generateContent...', null);
+  try{
+    const models=['gemini-2.5-flash','gemini-2.0-flash','gemini-1.5-flash'];
+    let ok=false;
+    for(const m of models){
+      try{
+        const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${key}`,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({contents:[{parts:[{text:'hi'}]}],generationConfig:{maxOutputTokens:10}}),
+          signal:AbortSignal.timeout(10000)
+        });
+        if(r.ok){const d=await r.json();log(`✓ ${m} 可用！`,true);ok=true;break;}
+        else if(r.status===404){log(`${m}: 404 不存在`,null);continue;}
+        else{const t=await r.text().catch(()=>'');log(`${m}: ${r.status} ${t.slice(0,80)}`,false);break;}
+      }catch(e){log(`${m}: ${e.message.slice(0,60)}`,false);}
+    }
+    if(!ok)log('所有模型都無法使用',false);
+  }catch(e){log('generateContent 測試失敗: '+e.message,false);}
+  
+  btn.disabled=false;
+}
 </script>
 </body>
 </html>
