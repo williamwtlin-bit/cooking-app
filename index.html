@@ -302,19 +302,27 @@ async function doFetch(){
     let data;
     try{data=JSON.parse(clean);}
     catch(je){throw new Error('AI 回傳格式錯誤，請重試');}
-    const list=data.recipes||data.r||data.dishes||data.items||[];
+    // handle root array OR object with any wrapper key
+    let list=Array.isArray(data)?data:null;
+    if(!list){
+      const keys=Object.keys(data);
+      for(const k of keys){if(Array.isArray(data[k])){list=data[k];break;}}
+    }
+    list=list||[];
     recipes=list.map(r=>({
-      name:r.name||r.title||r.n||'未知',
-      time:parseInt(r.time||r.cookTime||r.t)||20,
-      diff:r.difficulty||r.level||r.d||'普通',
-      desc:r.description||r.desc||r.summary||r.s||'',
-      main:r.mainIngredients||r.main||r.m||[],
-      ingr:(r.ingredients||r.ingr||r.i||[]).map(x=>({
-        n:x.name||x.ingredient||x.n||String(x),
-        a:parseFloat(x.amount||x.qty||x.quantity||x.a)||1,
-        u:x.unit||x.u||''
-      })),
-      steps:(r.steps||r.instructions||r.directions||r.procedure||r.p||[]).map(s=>typeof s==='string'?s:s.description||s.step||String(s))
+      name:r.name||r.title||r.dishName||r.recipeName||r.n||'未知',
+      time:parseInt(r.time||r.cookTime||r.preparationTime||r.totalTime||r.t)||20,
+      diff:r.difficulty||r.level||r.complexidade||r.d||'普通',
+      desc:r.description||r.desc||r.summary||r.introduction||r.s||'',
+      main:r.mainIngredients||r.main||r.primaryIngredients||r.m||[],
+      ingr:(r.ingredients||r.ingr||r.ingredient_list||r.i||[]).map(x=>{
+        if(typeof x==='string')return{n:x,a:1,u:''};
+        return{n:x.name||x.ingredient||x.item||x.n||String(x),
+               a:parseFloat(x.amount||x.qty||x.quantity||x.count||x.a)||1,
+               u:x.unit||x.measure||x.u||''};
+      }),
+      steps:(r.steps||r.instructions||r.directions||r.method||r.procedure||r.p||[]).map(s=>
+        typeof s==='string'?s:(s.instruction||s.description||s.step||s.text||String(s)))
     })).filter(r=>r.name&&r.name!=='未知');
     save();renderRecs();
     document.getElementById('rsub').textContent=`已推薦 ${recipes.length} 道料理`;
@@ -350,21 +358,26 @@ async function callGemini(prompt){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.key}`;
       const body={
         contents:[{parts:[{text:prompt}]}],
-        generationConfig:{maxOutputTokens:2048,temperature:0.7,responseMimeType:'application/json'}
+        generationConfig:{maxOutputTokens:2048,temperature:0.5,responseMimeType:'application/json'}
       };
       const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      if(res.status===404){lastErr=new Error(`模型 ${model} 不存在`);continue;}
+      if(res.status===404||res.status===503||res.status===429){
+        const b=await res.text().catch(()=>'');
+        lastErr=new Error(`Gemini ${res.status} (${model}): ${b.slice(0,100)}`);
+        await new Promise(r=>setTimeout(r,800));
+        continue;
+      }
       if(!res.ok){const b=await res.text().catch(()=>'');throw new Error(`Gemini ${res.status}: ${b.slice(0,200)}`);}
       const data=await res.json();
       const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
       if(!text)throw new Error('Gemini 回傳空白回應');
       return text;
     }catch(e){
-      if(e.message.includes('Gemini ')||e.message.includes('空白'))throw e;
+      if(e.message.startsWith('Gemini ')||e.message.includes('空白'))throw e;
       lastErr=e;
     }
   }
-  throw lastErr||new Error('所有模型都無法使用');
+  throw lastErr||new Error('所有模型都忙碌中，請稍後重試');
 }
 
 async function callClaude(prompt){
