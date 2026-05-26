@@ -293,8 +293,12 @@ async function doFetch(){
     if(cfg.mode==='gemini') rawText=await callGemini(prompt);
     else rawText=await callClaude(prompt);
 
-    const clean=rawText.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-    const data=JSON.parse(clean);
+    let clean=rawText.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const s=clean.indexOf('{'),e=clean.lastIndexOf('}');
+    if(s>=0&&e>s)clean=clean.slice(s,e+1);
+    let data;
+    try{data=JSON.parse(clean);}
+    catch(je){throw new Error('AI 回傳格式錯誤，請重試');}
     recipes=(data.r||data.recipes||[]).map(r=>({
       name:r.n||r.name||'未知',
       time:r.t||r.time||20,
@@ -336,11 +340,11 @@ async function callGemini(prompt){
   for(const model of models){
     try{
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.key}`;
-      const res=await fetch(url,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1000,temperature:0.7}})
-      });
+      const body={
+        contents:[{parts:[{text:prompt}]}],
+        generationConfig:{maxOutputTokens:2048,temperature:0.7,responseMimeType:'application/json'}
+      };
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       if(res.status===404){lastErr=new Error(`模型 ${model} 不存在`);continue;}
       if(!res.ok){const b=await res.text().catch(()=>'');throw new Error(`Gemini ${res.status}: ${b.slice(0,200)}`);}
       const data=await res.json();
