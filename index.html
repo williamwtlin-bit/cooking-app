@@ -286,8 +286,11 @@ async function doFetch(){
   document.getElementById('rlist').innerHTML=`<div style="text-align:center;padding:36px"><div class="spin"></div><p style="color:var(--t2);font-size:13px">AI 正在分析您的食材<br>推薦最適合的料理中...</p></div>`;
 
   try{
-    const ingrStr=pantry.map(i=>`${i.name}${i.qty}${i.unit}`).join(',');
-    const prompt=`料理助手。食材:${ingrStr}\n推薦3道料理，只用現有食材，只回JSON不要markdown。\n{"r":[{"n":"名稱","t":20,"d":"簡單","s":"描述","m":["主食材"],"i":[{"n":"食材","a":1,"u":"個"}],"p":["步驟1","步驟2","步驟3"]}]}`
+    const ingrStr=pantry.map(i=>`${i.name} ${i.qty}${i.unit}`).join('、');
+    const prompt=`你是中文料理助手。根據以下食材推薦3道料理，每道30分鐘內可完成。
+食材庫：${ingrStr}
+請回傳JSON格式如下（所有文字用中文）：
+{"recipes":[{"name":"料理名稱","time":20,"difficulty":"簡單","description":"一句話介紹","mainIngredients":["主要食材"],"ingredients":[{"name":"食材名","amount":2,"unit":"個"}],"steps":["步驟一","步驟二","步驟三"]}]}`
 
     let rawText;
     if(cfg.mode==='gemini') rawText=await callGemini(prompt);
@@ -299,15 +302,20 @@ async function doFetch(){
     let data;
     try{data=JSON.parse(clean);}
     catch(je){throw new Error('AI 回傳格式錯誤，請重試');}
-    recipes=(data.r||data.recipes||[]).map(r=>({
-      name:r.n||r.name||'未知',
-      time:r.t||r.time||20,
-      diff:r.d||r.difficulty||'普通',
-      desc:r.s||r.description||r.desc||'',
-      main:r.m||r.mainIngredients||[],
-      ingr:(r.i||r.allIngredients||[]).map(x=>({n:x.n||x.name,a:x.a||x.amount||1,u:x.u||x.unit||''})),
-      steps:r.p||r.steps||[]
-    }));
+    const list=data.recipes||data.r||data.dishes||data.items||[];
+    recipes=list.map(r=>({
+      name:r.name||r.title||r.n||'未知',
+      time:parseInt(r.time||r.cookTime||r.t)||20,
+      diff:r.difficulty||r.level||r.d||'普通',
+      desc:r.description||r.desc||r.summary||r.s||'',
+      main:r.mainIngredients||r.main||r.m||[],
+      ingr:(r.ingredients||r.ingr||r.i||[]).map(x=>({
+        n:x.name||x.ingredient||x.n||String(x),
+        a:parseFloat(x.amount||x.qty||x.quantity||x.a)||1,
+        u:x.unit||x.u||''
+      })),
+      steps:(r.steps||r.instructions||r.directions||r.procedure||r.p||[]).map(s=>typeof s==='string'?s:s.description||s.step||String(s))
+    })).filter(r=>r.name&&r.name!=='未知');
     save();renderRecs();
     document.getElementById('rsub').textContent=`已推薦 ${recipes.length} 道料理`;
     toast(`✨ 推薦了 ${recipes.length} 道料理！`);
