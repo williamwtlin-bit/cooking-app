@@ -287,7 +287,7 @@ async function doFetch(){
 
   try{
     const ingrStr=pantry.map(i=>`${i.name} ${i.qty}${i.unit}`).join('、');
-    const prompt=`你是中文料理助手。根據以下食材推薦3道料理，每道30分鐘內可完成。
+    const prompt=`你是中文料理助手。根據以下食材推薦4道料理，每道30分鐘內可完成，每道步驟3至4步即可。
 食材庫：${ingrStr}
 請回傳JSON格式如下（所有文字用中文）：
 {"recipes":[{"name":"料理名稱","time":20,"difficulty":"簡單","description":"一句話介紹","mainIngredients":["主要食材"],"ingredients":[{"name":"食材名","amount":2,"unit":"個"}],"steps":["步驟一","步驟二","步驟三"]}]}`
